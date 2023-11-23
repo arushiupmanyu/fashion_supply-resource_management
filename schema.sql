@@ -1,190 +1,176 @@
--- Create the fashion_supply_resource_management database
-CREATE DATABASE IF NOT EXISTS fashion_supply_resource_management;
-USE fashion_supply_resource_management;
+CREATE database fashion_db;
+USE fashion_db;
 
--- Create the suppliers table first
-CREATE TABLE suppliers (
-    supplier_id INT PRIMARY KEY,
-    contact_info VARCHAR(255),
-    name VARCHAR(255)
+-- Create the Designer Table
+CREATE TABLE Designer (
+    dsgnr_name VARCHAR(255),
+    dsgnr_cnt VARCHAR(255),
+    dsgnr_id VARCHAR(255) PRIMARY KEY,
+    d_id VARCHAR(255),
+    list VARCHAR(255),
+    l_id VARCHAR(255)
 );
 
--- Create the designers table
-CREATE TABLE designers (
-    design_id INT,
-    designer_id INT PRIMARY KEY,
-    contact_info VARCHAR(255),
-    name VARCHAR(255)
+-- Insert data into the Designer Table
+INSERT INTO Designer (dsgnr_name, dsgnr_cnt, dsgnr_id, d_id, list, l_id)
+VALUES
+    ('Alana', '9216388251', 'D1', 'Design1', 'blue thread, fabric glue, beige lace, velcro', 'LA1'),
+    ('George', '6235198203', 'D2', 'Design2', 'pink cotton 2m cloth, golden sequins, measuring tape, tulle', 'LG2');
+
+-- Create the Design Table
+CREATE TABLE Design (
+    d_name VARCHAR(255),
+    des_id VARCHAR(255) PRIMARY KEY,
+    mft_id VARCHAR(255),
+    l_id VARCHAR(255),
+    des_desc VARCHAR(255),
+    dsgnr_id VARCHAR(255),
+    FOREIGN KEY (dsgnr_id) REFERENCES Designer(dsgnr_id)
 );
 
--- Create the manufacturers table
-CREATE TABLE manufacturers (
-    design_id INT,
-    manufacturer_id INT PRIMARY KEY,
-    contact_info VARCHAR(255),
-    name VARCHAR(255)
+-- Insert data into the Design Table
+INSERT INTO Design (d_name, des_id, mft_id, l_id, des_desc, dsgnr_id)
+VALUES
+    ('blue top', 'Design1', 'M1', 'LA1', 'blue tube top with lace sleeve borders', 'D1'),
+    ('pink dress', 'Design2', 'M2', 'LG2', 'pink cotton dress with golden embellishments and puffy skirt', 'D2');
+
+-- Create the Manufacturer Table
+CREATE TABLE Manufacturer (
+    m_name VARCHAR(255),
+    m_cnt VARCHAR(255),
+    l_id VARCHAR(255) PRIMARY KEY,  -- Make sure 'l_id' is part of the primary key
+    des_id VARCHAR(255),
+    location VARCHAR(255),
+    FOREIGN KEY (des_id) REFERENCES Design(des_id)
 );
 
--- Create the materials table
-CREATE TABLE materials (
-    material_id INT PRIMARY KEY,
-    name VARCHAR(255),
+-- Insert data into the Manufacturer Table
+INSERT INTO Manufacturer (m_name, m_cnt, l_id, des_id, location)
+VALUES
+    ('ClothProd', '19275463728', 'LA1', 'Design1', '12.9080° N, 77.6516° E'),
+    ('BulkManufacture', '3526173478', 'LG2', 'Design2', '12.9063° N, 77.5857° E');
+
+-- Create the Supplier Table
+CREATE TABLE Supplier (
+    s_name VARCHAR(255),
+    s_cnt VARCHAR(255),
+    s_id VARCHAR(255) PRIMARY KEY,
+    ml_id VARCHAR(255),
+    location VARCHAR(255),
+    FOREIGN KEY (ml_id) REFERENCES Manufacturer(l_id)
+);
+
+-- Insert data into the Supplier Table
+INSERT INTO Supplier (s_name, s_cnt, s_id, ml_id, location)
+VALUES
+    ('DesignSupplies', '6738291653', 'S1', 'LA1', '12.9784° N, 77.6408° E'),
+    ('FashionCoSupply', '1234672534', 'S2', 'LG2', '12.98221° N, 77.60827');
+
+-- Add an index on 'l_id' in the Supplier table
+CREATE INDEX idx_ml_id ON Supplier (ml_id);
+
+-- Create the Material Table
+CREATE TABLE Material (
+    mat_id INT AUTO_INCREMENT PRIMARY KEY,
+    material_id VARCHAR(255) UNIQUE,  -- Store your alphanumeric identifier here
+    material VARCHAR(255),
     type VARCHAR(255),
-    supplier_id INT,
-    FOREIGN KEY (supplier_id) REFERENCES suppliers(supplier_id)
+    s_id VARCHAR(255),
+    mat_price INT,
+    FOREIGN KEY (s_id) REFERENCES Supplier(s_id)
 );
 
--- Create the designs table
-CREATE TABLE designs (
-    design_id INT PRIMARY KEY,
-    name VARCHAR(255),
-    design_desc TEXT,
-    material_list_id INT,
-    designer_id INT,  -- Corrected foreign key reference
-    manufacturer_id INT,
-    FOREIGN KEY (designer_id) REFERENCES designers(designer_id),  -- Corrected foreign key reference
-    FOREIGN KEY (manufacturer_id) REFERENCES manufacturers(manufacturer_id)
-);
-
--- Create the logistics table
-CREATE TABLE logistics (
-    id INT PRIMARY KEY,
-    name VARCHAR(255),
-    contact_info VARCHAR(255)
-);
-
--- Create relationships and relational attributes
--- Relation: give_design_to
-CREATE TABLE give_design_to (
-    logistics_id INT,
-    manufacturer_id INT,
-    tracking_id INT,
-    payment_id INT,
-    material_list_id INT,
-    design_id INT,
-    FOREIGN KEY (logistics_id) REFERENCES logistics(id),
-    FOREIGN KEY (manufacturer_id) REFERENCES manufacturers(manufacturer_id),
-    FOREIGN KEY (design_id) REFERENCES designs(design_id)
-);
-
--- Relation: collect_scrapes_from
-CREATE TABLE collect_scrapes_from (
-    logistics_id INT,
-    manufacturer_id INT,
-    refurbishing_id INT,
-    new_product_id INT,
-    product_price DECIMAL(10, 2),
-    product_desc TEXT,
-    FOREIGN KEY (logistics_id) REFERENCES logistics(id),
-    FOREIGN KEY (manufacturer_id) REFERENCES manufacturers(manufacturer_id)
-);
-
--- Relation: take_supplies_from
-CREATE TABLE take_supplies_from (
-    logistics_id INT,
-    supplier_id INT,
-    FOREIGN KEY (logistics_id) REFERENCES logistics(id),
-    FOREIGN KEY (supplier_id) REFERENCES suppliers(supplier_id)
-);
-
--- Relation: transport_supplies_to
-CREATE TABLE transport_supplies_to (
-    logistics_id INT,
-    designer_id INT,
-    tracking_id INT,
-    material_id INT,
-    payment_id INT,
-    FOREIGN KEY (logistics_id) REFERENCES logistics(id),
-    FOREIGN KEY (designer_id) REFERENCES designers(designer_id),
-    FOREIGN KEY (material_id) REFERENCES materials(material_id)
-);
-
--- Relation: give_supply_list_to
-CREATE TABLE give_supply_list_to (
-    logistics_id INT,
-    designer_id INT,
-    tracking_id INT,
-    material_id INT,
-    payment_id INT,
-    FOREIGN KEY (logistics_id) REFERENCES logistics(id),
-    FOREIGN KEY (designer_id) REFERENCES designers(designer_id),
-    FOREIGN KEY (material_id) REFERENCES materials(material_id)
-);
-
--- Insert into suppliers table
-INSERT INTO suppliers (supplier_id, contact_info, name)
+-- Insert data into the Material Table
+INSERT INTO Material (material, type, s_id, mat_price)
 VALUES
-    (1, 'supplierABC@gmail.com', 'Silk Suppliers Ltd.'),
-    (2, 'supplierXYZ@gmail.com', 'LeatherCraft Suppliers'),
-    (3, 'supplier123@gmail.com', 'Cotton Comfort Mills');
+    ('blue thread', 'stiching', 'S1', 80),
+    ('fabric glue', 'glue', 'S2', 110),
+    ('beige lace', 'accessories', 'S1', 199),
+    ('velcro', 'accessories', 'S1', 195),
+    ('pink cotton cloth', 'fabric', 'S2', 475),
+    ('golden sequins', 'accessories', 'S1', 110),
+    ('tulle', 'fabric', 'S1', 230),
+    ('measuring tape', 'stiching', 'S2', 54),
+    ('blue thread', 'stitching', 'S2', 120);
+    
+-- Create a view for the Supplier with material operations
+CREATE VIEW SupplierMaterialView AS
+SELECT
+    m.material,
+    m.type,
+    m.mat_id,
+    m.s_id,
+    m.mat_price,
+    s.s_name,
+    s.s_cnt,
+    s.location
+FROM
+    Material m
+JOIN
+    Supplier s ON m.s_id = s.s_id;
 
--- Insert into designers table
-INSERT INTO designers (design_id, designer_id, contact_info, name)
-VALUES
-    (1, 101, 'john.designer@gmail.com', 'John Anderson Designs'),
-    (2, 102, 'jane.designer@gmail.com', 'Jane Smith Creations'),
-    (3, 103, 'bob.designer@gmail.com', 'Bob Taylor Couture');
+-- Create a stored procedure to add new materials
+DELIMITER //
 
--- Insert into manufacturers table
-INSERT INTO manufacturers (design_id, manufacturer_id, contact_info, name)
-VALUES
-    (1, 201, 'manufacturerA@gmail.com', 'A1 Fashion Manufacturing'),
-    (2, 202, 'manufacturerB@gmail.com', 'Bespoke Styles Co.'),
-    (3, 203, 'manufacturerC@gmail.com', 'Chic Apparel Makers');
+CREATE PROCEDURE AddMaterial(
+    IN p_material VARCHAR(255),
+    IN p_type VARCHAR(255),
+    IN p_s_id VARCHAR(255),
+    IN p_mat_price INT
+)
+BEGIN
+    INSERT INTO Material (material, type, s_id, mat_price)
+    VALUES (p_material, p_type, p_s_id, p_mat_price);
+END //
 
--- Insert into materials table
-INSERT INTO materials (material_id, name, type, supplier_id)
-VALUES
-    (1, 'Silk Fabric', 'Fabric', 1),
-    (2, 'Leather Material', 'Material', 2),
-    (3, 'Cotton Blend', 'Fabric', 3);
+DELIMITER ;
 
--- Insert into designs table
-INSERT INTO designs (design_id, name, design_desc, material_list_id, designer_id, manufacturer_id)
-VALUES
-    (1, 'Elegant Evening Gown', 'Elegant design for evening events', 1, 101, 201),
-    (2, 'Casual Denim Jeans', 'Comfortable and stylish jeans', 2, 102, 202),
-    (3, 'Summer Floral Dress', 'Light and flowy dress for summer', 3, 103, 203);
+-- Create a stored procedure to update the quantity of materials
+DELIMITER //
 
--- Insert into logistics table
-INSERT INTO logistics (id, name, contact_info)
-VALUES
-    (1, 'Express Logistics', 'express.logistics@gmail.com'),
-    (2, 'Swift Delivery Services', 'swift.delivery@gmail.com'),
-    (3, 'Rapid Logistics Solutions', 'rapid.logistics@gmail.com');
+CREATE PROCEDURE UpdateMaterial(
+    IN p_mat_id VARCHAR(255),
+    IN p_new_price INT
+)
+BEGIN
+    UPDATE Material
+    SET mat_price = p_new_price
+    WHERE mat_id = p_mat_id;
+END //
 
--- Insert into give_design_to table
-INSERT INTO give_design_to (logistics_id, manufacturer_id, tracking_id, payment_id, material_list_id, design_id)
-VALUES
-    (1, 201, 1001, 2001, 1, 1),
-    (2, 202, 1002, 2002, 2, 2),
-    (3, 203, 1003, 2003, 3, 3);
+DELIMITER ;
 
--- Insert into collect_scrapes_from table
-INSERT INTO collect_scrapes_from (logistics_id, manufacturer_id, refurbishing_id, new_product_id, product_price, product_desc)
-VALUES
-    (1, 201, 3001, 4001, 50.00, 'Elegant Scrapes Collection'),
-    (2, 202, 3002, 4002, 60.00, 'Casual Scrapes Collection'),
-    (3, 203, 3003, 4003, 70.00, 'Summer Scrapes Collection');
+-- Create a stored procedure to delete materials
+DELIMITER //
 
--- Insert into take_supplies_from table
-INSERT INTO take_supplies_from (logistics_id, supplier_id)
-VALUES
-    (1, 1),
-    (2, 2),
-    (3, 3);
+CREATE PROCEDURE DeleteMaterial(
+    IN p_mat_id VARCHAR(255)
+)
+BEGIN
+    DELETE FROM Material
+    WHERE mat_id = p_mat_id;
+END //
 
--- Insert into transport_supplies_to table
-INSERT INTO transport_supplies_to (logistics_id, designer_id, tracking_id, material_id, payment_id)
-VALUES
-    (1, 101, 5001, 1, 6001),
-    (2, 102, 5002, 2, 6002),
-    (3, 103, 5003, 3, 6003);
+DELIMITER ;
 
--- Insert into give_supply_list_to table
-INSERT INTO give_supply_list_to (logistics_id, designer_id, tracking_id, material_id, payment_id)
-VALUES
-    (1, 101, 7001, 1, 8001),
-    (2, 102, 7002, 2, 8002),
-    (3, 103, 7003, 3, 8003);
+SELECT * FROM SupplierMaterialView WHERE s_id = 'S1';
+CALL AddMaterial('orange fabric paint', 'paint', 'S1', 150);
+CALL UpdateMaterial('1', 80);
+CALL DeleteMaterial('10');
+SELECT * FROM SupplierMaterialView;
 
+-- total material cost for each designer's designs
+SELECT
+    dsgnr_name,
+    COUNT(DISTINCT d_id) AS design_count,
+    SUM(mat_price) AS total_material_cost
+FROM
+    Designer d
+JOIN
+    Design dd ON d.dsgnr_id = dd.dsgnr_id
+JOIN
+    Material m ON dd.des_id = m.des_id
+JOIN
+    Manufacturer mf ON d.l_id = mf.l_id
+GROUP BY
+    dsgnr_name;
