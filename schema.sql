@@ -200,3 +200,33 @@ JOIN
     material ON supplier.s_id = material.s_id
 WHERE
     material.mat_price > (SELECT AVG(mat_price) FROM material material WHERE material.material = material.material);
+
+-- triggers
+-- Add material_count column to the Supplier table
+ALTER TABLE Supplier
+ADD COLUMN material_count INT DEFAULT 0;
+-- update material_count on material insertion
+DELIMITER //
+
+CREATE TRIGGER AfterInsertMaterial
+AFTER INSERT
+ON Material FOR EACH ROW
+BEGIN
+    UPDATE Supplier
+    SET material_count = material_count + 1
+    WHERE s_id = NEW.s_id;
+END //
+
+DELIMITER ;
+
+-- check trigger
+-- Insert more materials
+INSERT INTO Material (material, type, s_id, mat_price)
+VALUES 
+    ('scissors', 'stitching', 'S1', 50),
+    ('scissors', 'stitching', 'S1', 50);
+
+-- Check Supplier table after inserts
+SELECT s_id, material_count
+FROM Supplier
+WHERE s_id = 'S1';
