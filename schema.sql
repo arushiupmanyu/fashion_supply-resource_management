@@ -230,3 +230,30 @@ VALUES
 SELECT s_id, material_count
 FROM Supplier
 WHERE s_id = 'S1';
+
+-- user-defined function
+-- calculate total material cost (inventory cost) for a supplier
+DELIMITER //
+
+CREATE FUNCTION GetTotalMaterialCostForSupplier(supplier_id VARCHAR(255))
+RETURNS DECIMAL(10, 2)
+DETERMINISTIC
+READS SQL DATA
+BEGIN
+    DECLARE total_cost DECIMAL(10, 2);
+
+    SELECT SUM(Material.mat_price) INTO total_cost
+    FROM Material
+    WHERE Material.s_id = supplier_id;
+
+    RETURN COALESCE(total_cost, 0);
+END //
+
+DELIMITER ;
+
+-- function verification
+SELECT
+    s_id,
+    GetTotalMaterialCostForSupplier(s_id) AS TotalMaterialCost
+FROM
+    Supplier;
