@@ -181,7 +181,7 @@ ORDER BY
     Designer.dsgnr_name;
 
 -- find designers whose designs include a material that is more expensive than the average price of that material across all designers
--- correlated queries
+-- correlated and nested queries
 SELECT
     designer.dsgnr_name,
     design.des_id,
