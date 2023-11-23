@@ -257,3 +257,45 @@ SELECT
     GetTotalMaterialCostForSupplier(s_id) AS TotalMaterialCost
 FROM
     Supplier;
+
+-- allowing the designer to set the bulk order number
+ALTER TABLE Design
+ADD COLUMN bulk_order_number INT;
+
+-- procedure to set the bulk order number
+DELIMITER //
+
+CREATE PROCEDURE SetBulkOrderNumber(
+    IN p_des_id VARCHAR(255),
+    IN p_bulk_order_number INT
+)
+BEGIN
+    UPDATE Design
+    SET bulk_order_number = p_bulk_order_number
+    WHERE des_id = p_des_id;
+END //
+
+DELIMITER ;
+
+CALL SetBulkOrderNumber('Design1', 50);
+CALL SetBulkOrderNumber('Design2', 25);
+
+-- view for the Manufacturer with design and material information
+CREATE VIEW ManufacturerDesignView AS
+SELECT
+    M.m_name AS ManufacturerName,
+    D.d_name AS DesignName,
+    D.des_id AS DesignID,
+    D.des_desc AS DesignDescription,
+    DSGNR.dsgnr_name AS DesignerName,
+    DSGNR.dsgnr_cnt AS DesignerContact,
+    DSGNR.list AS MaterialList,
+    D.bulk_order_number AS BulkOrderNumber
+FROM
+    Manufacturer M
+JOIN
+    Design D ON M.des_id = D.des_id
+JOIN
+    Designer DSGNR ON D.dsgnr_id = DSGNR.dsgnr_id;
+
+SELECT * FROM ManufacturerDesignView;
