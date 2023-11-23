@@ -77,6 +77,7 @@ CREATE TABLE Material (
     type VARCHAR(255),
     s_id VARCHAR(255),
     mat_price INT,
+    l_id VARCHAR(255),
     FOREIGN KEY (s_id) REFERENCES Supplier(s_id)
 );
 
@@ -159,18 +160,43 @@ CALL UpdateMaterial('1', 80);
 CALL DeleteMaterial('10');
 SELECT * FROM SupplierMaterialView;
 
--- total material cost for each designer's designs
+-- total material cost for the specified designer
+-- group by, aggregate 
+SELECT 
+    Designer.dsgnr_name,
+    SUM(Material.mat_price) AS TotalMaterialCost
+FROM 
+    Designer
+JOIN 
+    Design ON Designer.dsgnr_id = Design.dsgnr_id
+JOIN 
+    Manufacturer ON Design.des_id = Manufacturer.des_id
+JOIN 
+    Supplier ON Manufacturer.l_id = Supplier.ml_id
+JOIN 
+    Material ON Supplier.s_id = Material.s_id
+GROUP BY 
+    Designer.dsgnr_name
+ORDER BY 
+    Designer.dsgnr_name;
+
+-- find designers whose designs include a material that is more expensive than the average price of that material across all designers
+-- correlated queries
 SELECT
-    dsgnr_name,
-    COUNT(DISTINCT d_id) AS design_count,
-    SUM(mat_price) AS total_material_cost
+    designer.dsgnr_name,
+    design.des_id,
+    material.material,
+    material.mat_price,
+    (SELECT AVG(mat_price) FROM material WHERE material.material = material.material) AS avg_material_price
 FROM
-    Designer d
-JOIN
-    Design dd ON d.dsgnr_id = dd.dsgnr_id
-JOIN
-    Material m ON dd.des_id = m.des_id
-JOIN
-    Manufacturer mf ON d.l_id = mf.l_id
-GROUP BY
-    dsgnr_name;
+    designer
+JOIN 
+    design ON designer.dsgnr_id = design.dsgnr_id
+JOIN 
+    manufacturer ON design.des_id = manufacturer.des_id
+JOIN 
+    supplier ON manufacturer.l_id = supplier.ml_id
+JOIN 
+    material ON supplier.s_id = material.s_id
+WHERE
+    material.mat_price > (SELECT AVG(mat_price) FROM material material WHERE material.material = material.material);
