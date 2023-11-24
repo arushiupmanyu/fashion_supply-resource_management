@@ -1,136 +1,99 @@
 import streamlit as st
 import pandas as pd
 import mysql.connector
-from mysql.connector import connect, Error
-from PIL import Image
-import io
 
-# Function to establish a connection to the MySQL database
-def create_connection():
-    return connect(
-        host="localhost",
-        port=3306,
-        user="root",
-        password="vflute123!",
-        database="fashion_supply_resource_management",
-        auth_plugin='sha256_password'
-    )
+# Connect to the MySQL database
+conn = mysql.connector.connect(
+    host="localhost",
+    user="root",
+    password="vflute123!",
+    database="fashion_db"
+)
 
-# Function to execute SQL queries
-def execute_query(conn, query, data=None):
-    try:
-        with conn.cursor() as cursor:
-            if data:
-                cursor.execute(query, data)
-            else:
-                cursor.execute(query)
-        conn.commit()
-        return True
-    except Error as e:
-        st.error(f"Error: {e}")
-        conn.rollback()
-        return False
+# Function to execute SQL queries and fetch data
+def execute_query(query):
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute(query)
+    result = cursor.fetchall()
+    cursor.close()
+    return result
 
-# Function to fetch data from the database
-def fetch_data(conn, query):
-    with conn.cursor() as cursor:
-        cursor.execute(query)
-        return cursor.fetchall(), [desc[0] for desc in cursor.description]
+# Supplier Page
+# Supplier Page
+def supplier_page():
+    st.header("Supplier Page")
 
-# Function to display data in a table
-def display_table(conn, table_name):
-    query = f"SELECT * FROM {table_name};"
-    result, columns = fetch_data(conn, query)
-    st.table(pd.DataFrame(result, columns=columns))
+    # Buttons for Supplier Page
+    action_options = ["View Material", "Add Material", "Update Material", "Delete Material"]
+    selected_action = st.sidebar.selectbox("Select Action", action_options)
 
-# Function to add material for suppliers and manufacturers
-def add_material(conn, supplier_id, manufacturer_id, material_id, quantity):
-    query = "INSERT INTO materials(supplier_id, manufacturer_id, material_id, quantity) VALUES (%s, %s, %s, %s);"
-    data = (supplier_id, manufacturer_id, material_id, quantity)
-    execute_query(conn, query, data)
-    st.success("Material added successfully!")
+    if selected_action == "View Material":
+        st.subheader("View Material")
+        query = "SELECT * FROM SupplierMaterialView;"
+        data = execute_query(query)
+        st.dataframe(pd.DataFrame(data))
 
-# Function to update material quantity for suppliers and manufacturers
-def update_quantity(conn, supplier_id, manufacturer_id, material_id, new_quantity):
-    query = "UPDATE materials SET quantity = %s WHERE supplier_id = %s AND manufacturer_id = %s AND material_id = %s;"
-    data = (new_quantity, supplier_id, manufacturer_id, material_id)
-    execute_query(conn, query, data)
-    st.success("Quantity updated successfully!")
+    elif selected_action == "Add Material":
+        st.subheader("Add Material")
+        material_name = st.text_input("Material Name")
+        material_type = st.text_input("Material Type")
+        material_price = st.number_input("Material Price")
+        supplier_id = st.text_input("Supplier ID")
 
-# Function to delete material for suppliers and manufacturers
-def delete_material(conn, supplier_id, manufacturer_id, material_id):
-    query = "DELETE FROM materials WHERE supplier_id = %s AND manufacturer_id = %s AND material_id = %s;"
-    data = (supplier_id, manufacturer_id, material_id)
-    execute_query(conn, query, data)
-    st.success("Material deleted successfully!")
+        if st.button("Add Material"):
+            query = f"INSERT INTO Material (material, type, s_id, mat_price) VALUES ('{material_name}', '{material_type}', '{supplier_id}', {material_price});"
+            execute_query(query)
+            st.success("Material added successfully!")
 
-# Function to upload custom design prints for designers
-def upload_design(conn, designer_id, design_name, image):
-    query = "INSERT INTO designs(designer_id, name, image) VALUES (%s, %s, %s);"
-    data = (designer_id, design_name, image)
-    execute_query(conn, query, data)
-    st.success("Design uploaded successfully!")
+            # Fetch and display updated material data
+            query_view = "SELECT * FROM SupplierMaterialView;"
+            updated_data = execute_query(query_view)
+            st.subheader("Updated Material Data")
+            st.dataframe(pd.DataFrame(updated_data))
+    elif selected_action == "Delete Material":
+        st.subheader("Delete Material")
+        material_id_to_delete = st.text_input("Material ID to Delete")
 
-# Function to track orders for logistics
-def track_orders(conn):
-    display_table(conn, "logistics")
+        if st.button("Delete Material"):
+            query_delete = f"DELETE FROM Material WHERE mat_id = {material_id_to_delete};"
+            execute_query(query_delete)
+            st.success(f"Material with ID {material_id_to_delete} deleted successfully!")
 
-# Streamlit App
-st.title("Fashion Supply Resource Management App")
+            # Invalidate the cache to trigger re-execution of the "View Material" section
+            st.cache(hash_funcs={pd.DataFrame: lambda _: None}).clear()
 
-# Create a connection
-conn = create_connection()
+    # Add more buttons for other actions (Update Material, Delete Material, etc.)
 
-# Select user role
-user_role = st.radio("Select User Role:", ("Supplier", "Manufacturer", "Designer", "Logistics"))
+    # Add more buttons for other actions (Update Material, Delete Material, etc.)
 
-if user_role == "Supplier" or user_role == "Manufacturer":
-    st.header(f"{user_role} Operations")
+# Manufacturer Page
+def manufacturer_page():
+    st.header("Manufacturer Page")
 
-    # Get user input
-    supplier_id = st.number_input("Enter Supplier ID:", min_value=1, key="supplier_id")
-    manufacturer_id = st.number_input("Enter Manufacturer ID:", min_value=1, key="manufacturer_id")
-    material_id = st.number_input("Enter Material ID:", min_value=1, key="material_id")
-    quantity = st.number_input("Enter Quantity:", min_value=1, key="quantity")
+    # Buttons for Manufacturer Page
+    # Include buttons for different actions related to Manufacturer
 
-    # Select operation
-    operation = st.radio("Select Operation:", ("Add Material", "Update Quantity", "Delete Material"))
+# Designer Page
+def designer_page():
+    st.header("Designer Page")
 
-    if operation == "Add Material":
-        add_material(conn, supplier_id, manufacturer_id, material_id, quantity)
-    elif operation == "Update Quantity":
-        new_quantity = st.number_input("Enter New Quantity:", min_value=1, key="new_quantity")
-        update_quantity(conn, supplier_id, manufacturer_id, material_id, new_quantity)
-    elif operation == "Delete Material":
-        delete_material(conn, supplier_id, manufacturer_id, material_id)
+    # Buttons for Designer Page
+    # Include buttons for different actions related to Designer
 
-elif user_role == "Designer":
-    st.header("Designer Operations")
+# Streamlit app
+def main():
+    st.title("FashionEase - Fashion Supply and Resource Management")
 
-    # Get user input
-    designer_id = st.number_input("Enter Designer ID:", min_value=1, key="designer_id")
-    design_name = st.text_input("Enter Design Name:", key="design_name")
-    image = st.file_uploader("Upload PNG Image for Design:", type=["png"])
+    # Sidebar navigation
+    page_options = ["Supplier", "Manufacturer", "Designer"]
+    selected_page = st.sidebar.radio("Select Page", page_options)
 
-    if st.button("Upload Design"):
-        if image is not None:
-            # Convert the uploaded image to bytes
-            image_bytes = io.BytesIO(image.read())
-            # Display the uploaded image
-            st.image(Image.open(image_bytes), caption=f"Uploaded Image for {design_name}", use_column_width=True)
-            # Save the image to the database
-            upload_design(conn, designer_id, design_name, image_bytes.getvalue())
-        else:
-            st.warning("Please upload a PNG image.")
+    if selected_page == "Supplier":
+        supplier_page()
+    elif selected_page == "Manufacturer":
+        manufacturer_page()
+    elif selected_page == "Designer":
+        designer_page()
 
-elif user_role == "Logistics":
-    st.header("Logistics Operations")
-
-    # Select operation
-    operation = st.radio("Select Operation:", ("Track Orders",))
-
-    if operation == "Track Orders":
-        track_orders(conn)
-
-# Close the connection when done
-conn.close()
+if __name__ == "__main__":
+    main()
